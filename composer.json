@@ -1,0 +1,21 @@
+{
+    "name": "gigamel/slon-container",
+    "autoload": {
+        "psr-4": {
+            "Slon\\Container\\": "src/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.1"
+    },
+    "repositories": {
+        "gigamel/slon-odr": {
+            "type": "vcs",
+            "url": "https://github.com/gigamel/slon-odr.git"
+        }
+    },
+    "require": {
+        "gigamel/slon-odr": "dev-main",
+        "psr/container": "^2.0"
+    }
+}
