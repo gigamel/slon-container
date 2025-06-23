@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Slon\Container;
 
+use Closure;
 use InvalidArgumentException;
 use Slon\ODR\MetaRegistry;
 
+use function array_key_exists;
+use function call_user_func;
 use function sprintf;
 
-class ServicesRegistry extends MetaRegistry
+class ContainerRegistry extends MetaRegistry
 {
     /**
      * @throws InvalidArgumentException
@@ -21,6 +24,21 @@ class ServicesRegistry extends MetaRegistry
         }
     }
     
+    public function get(string $id): object
+    {
+        if (
+            array_key_exists($id, $this->instances)
+            && $this->instances[$id] instanceof Closure
+        ) {
+            $this->instances[$id] = call_user_func(
+                $this->instances[$id],
+                $this,
+            );
+        }
+        
+        return parent::get($id);
+    }
+
     /**
      * @throws InvalidArgumentException
      */
