@@ -6,9 +6,9 @@ namespace Slon\Container;
 
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
+use Slon\Container\Exception\MetaInstanceNotFoundException;
 use Slon\Container\Exception\ServiceNotFoundException;
-use Slon\ODR\Exception\MetaInstanceNotFoundException;
-use Slon\ODR\Meta\MetaRegistryInterface;
+use Slon\Container\Meta\MetaRegistryInterface;
 
 use function sprintf;
 
