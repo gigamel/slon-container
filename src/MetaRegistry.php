@@ -14,10 +14,17 @@ use Slon\Container\Meta\ReferenceInterface;
 
 use function array_key_exists;
 use function call_user_func;
+use function in_array;
 use function sprintf;
 
 class MetaRegistry implements MetaRegistryInterface
 {
+    protected array $registryIds = [
+        'registry',
+        'container',
+        'service_container',
+    ];
+
     /** @var list<MetaInstanceInterface> */
     protected array $metaInstances = [];
 
@@ -46,6 +53,11 @@ class MetaRegistry implements MetaRegistryInterface
                 $metaInstance->getId(),
             ));
         }
+        
+        $this->checkContainerId(
+            $metaInstance->getId(),
+            $metaInstance->getClassName(),
+        );
         
         $this->metaInstances[$metaInstance->getId()] = $metaInstance;
     }
@@ -82,7 +94,8 @@ class MetaRegistry implements MetaRegistryInterface
     public function has(string $id): bool
     {
         return array_key_exists($id, $this->instances)
-            || array_key_exists($id, $this->metaInstances);
+            || array_key_exists($id, $this->metaInstances)
+            || $this->isRegistry($id);
     }
     
     public function getParameter(string $name, mixed $default = null): mixed
@@ -111,6 +124,11 @@ class MetaRegistry implements MetaRegistryInterface
     public function getMetaInstances(): array
     {
         return $this->metaInstances;
+    }
+    
+    public function isContainerId(string $id): bool
+    {
+        return in_array($id, $this->registryIds, true);
     }
 
     /**
@@ -180,6 +198,8 @@ class MetaRegistry implements MetaRegistryInterface
      */
     protected function addInstance(string $id, object $service): void
     {
+        $this->checkContainerId($id, $service::class);
+        
         if ($this === $service) {
             throw new CircularReferenceException(sprintf(
                 'Detected circular reference "%s"',
@@ -195,5 +215,18 @@ class MetaRegistry implements MetaRegistryInterface
         }
         
         $this->instances[$id] = $service;
+    }
+    
+    protected function checkContainerId(string $id, string $className): void
+    {
+        if (!$this->isContainerId($id)) {
+            return;
+        }
+        
+        throw new InvalidArgumentException(sprintf(
+            'Meta instance "%s" refers to the reserved "[%s]"',
+            $className,
+            implode(',', $this->registryIds),
+        ));
     }
 }

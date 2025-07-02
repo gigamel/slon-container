@@ -27,4 +27,6 @@ interface MetaRegistryInterface
      * @return array<string, MetaInstanceInterface>|list<MetaInstanceInterface>
      */
     public function getMetaInstances(): array;
+    
+    public function isContainerId(string $id): bool;
 }

@@ -33,6 +33,10 @@ class Reference implements ReferenceInterface
 
     public function load(MetaRegistryInterface $registry): object
     {
+        if ($registry->isContainerId($this->getId())) {
+            return clone $registry;
+        }
+        
         return $registry->get($this->id);
     }
 }
