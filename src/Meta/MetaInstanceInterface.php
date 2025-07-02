@@ -16,4 +16,8 @@ interface MetaInstanceInterface
     public function getClassName(): string;
     
     public function getId(): string;
+    
+    public function extends(string $id): self;
+    
+    public function getExtends(): array;
 }

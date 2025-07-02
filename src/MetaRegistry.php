@@ -137,6 +137,24 @@ class MetaRegistry implements MetaRegistryInterface
     protected function instantiate(MetaInstanceInterface $metaInstance): object
     {
         $arguments = [];
+        
+        foreach ($metaInstance->getExtends() as $id) {
+            if (!array_key_exists($id, $this->metaInstances)) {
+                throw new InvalidArgumentException(sprintf(
+                    'Not found extends "%s" in meta "%s"',
+                    $id,
+                    $metaInstance->getClassName(),
+                ));
+            }
+            
+            foreach (
+                $this->metaInstances[$id]->getArguments()
+                as $name => $reference
+            ) {
+                $metaInstance->addArgument($name, $reference);
+            }
+        }
+        
         foreach ($metaInstance->getArguments() as $name => $reference) {
             $this->checkCircular($metaInstance, $reference);
             $arguments[$name] = $reference->load($this);

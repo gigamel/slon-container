@@ -14,6 +14,8 @@ use function sprintf;
 
 class MetaInstance implements MetaInstanceInterface
 {
+    protected array $extends = [];
+
     /** @var array<string, ReferenceInterface> */
     protected array $arguments = [];
 
@@ -74,5 +76,16 @@ class MetaInstance implements MetaInstanceInterface
     public function getId(): string
     {
         return $this->id ?? $this->className;
+    }
+    
+    public function extends(string $id): self
+    {
+        $this->extends[] = $id;
+        return $this;
+    }
+    
+    public function getExtends(): array
+    {
+        return $this->extends;
     }
 }
