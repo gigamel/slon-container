@@ -95,7 +95,7 @@ class MetaRegistry implements MetaRegistryInterface
     {
         return array_key_exists($id, $this->instances)
             || array_key_exists($id, $this->metaInstances)
-            || $this->isRegistry($id);
+            || $this->isContainerId($id);
     }
     
     public function getParameter(string $name, mixed $default = null): mixed
