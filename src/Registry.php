@@ -151,7 +151,7 @@ class Registry implements RegistryInterface
                 $this->instances[$parentId]->getArguments()
                 as $name => $reference
             ) {
-                $instance->addArgument($name, $reference);
+                $instance->argument($name, $reference);
             }
         }
         
