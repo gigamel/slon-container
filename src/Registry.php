@@ -169,7 +169,7 @@ class Registry implements RegistryInterface
      * @throws CircularReferenceException
      */
     protected function checkCircular(
-        instanceInterface $rootInstance,
+        InstanceInterface $rootInstance,
         ReferenceInterface $innerReference,
         ?InstanceInterface $innerInstance = null,
     ): void {
