@@ -6,16 +6,16 @@ namespace Slon\Container;
 
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
-use Slon\Container\Exception\MetaInstanceNotFoundException;
+use Slon\Container\Contract\RegistryInterface;
+use Slon\Container\Exception\NotFoundInstanceException;
 use Slon\Container\Exception\ServiceNotFoundException;
-use Slon\Container\Meta\MetaRegistryInterface;
 
 use function sprintf;
 
 class Container implements ContainerInterface
 {
     public function __construct(
-        protected MetaRegistryInterface $registry,
+        protected RegistryInterface $registry,
     ) {}
     
     /**
@@ -25,7 +25,7 @@ class Container implements ContainerInterface
     {
         try {
             return $this->registry->get($id);
-        } catch (MetaInstanceNotFoundException $e) {
+        } catch (NotFoundInstanceException $e) {
             throw new ServiceNotFoundException(
                 sprintf('Service "%s" not found', $id),
                 previous: $e,

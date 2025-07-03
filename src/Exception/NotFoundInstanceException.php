@@ -6,4 +6,4 @@ namespace Slon\Container\Exception;
 
 use InvalidArgumentException;
 
-class MetaInstanceNotFoundException extends InvalidArgumentException {}
+class NotFoundInstanceException extends InvalidArgumentException {}

@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Slon\Container;
 
-use Slon\Container\Meta\MetaInstanceInterface;
-use Slon\Container\Meta\ReferenceInterface;
+use Slon\Container\Contract\InstanceInterface;
+use Slon\Container\Contract\ReferenceInterface;
 use InvalidArgumentException;
 
 use function array_key_exists;
 use function class_exists;
 use function sprintf;
 
-class MetaInstance implements MetaInstanceInterface
+class Instance implements InstanceInterface
 {
-    protected array $extends = [];
+    protected ?string $extendsId = null;
 
     /** @var array<string, ReferenceInterface> */
     protected array $arguments = [];
@@ -41,7 +41,7 @@ class MetaInstance implements MetaInstanceInterface
     /**
      * @throws InvalidArgumentException
      */
-    public function addArgument(
+    public function argument(
         string $name,
         ReferenceInterface $reference,
     ): self {
@@ -80,12 +80,12 @@ class MetaInstance implements MetaInstanceInterface
     
     public function extends(string $id): self
     {
-        $this->extends[] = $id;
+        $this->extendsId = $id;
         return $this;
     }
     
-    public function getExtends(): array
+    public function getParentId(): ?string
     {
-        return $this->extends;
+        return $this->extendsId;
     }
 }

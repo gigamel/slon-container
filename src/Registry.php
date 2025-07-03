@@ -6,18 +6,18 @@ namespace Slon\Container;
 
 use Closure;
 use InvalidArgumentException;
+use Slon\Container\Contract\InstanceInterface;
+use Slon\Container\Contract\RegistryInterface;
+use Slon\Container\Contract\ReferenceInterface;
 use Slon\Container\Exception\CircularReferenceException;
-use Slon\Container\Exception\MetaInstanceNotFoundException;
-use Slon\Container\Meta\MetaInstanceInterface;
-use Slon\Container\Meta\MetaRegistryInterface;
-use Slon\Container\Meta\ReferenceInterface;
+use Slon\Container\Exception\NotFoundInstanceException;
 
 use function array_key_exists;
 use function call_user_func;
 use function in_array;
 use function sprintf;
 
-class MetaRegistry implements MetaRegistryInterface
+class Registry implements RegistryInterface
 {
     protected array $registryIds = [
         'registry',
@@ -25,67 +25,67 @@ class MetaRegistry implements MetaRegistryInterface
         'service_container',
     ];
 
-    /** @var list<MetaInstanceInterface> */
-    protected array $metaInstances = [];
+    /** @var list<InstanceInterface> */
+    protected array $instances = [];
 
     /** @var array<string, object> */
-    protected array $instances = [];
+    protected array $services = [];
     
-    protected array $parameters = [];
+    protected array $options = [];
     
     protected bool $isCompiled = false;
     
     public function __construct(array $services = [])
     {
         foreach ($services as $id => $service) {
-            $this->addInstance($id, $service);
+            $this->addService($id, $service);
         }
     }
 
     /**
      * @throws InvalidArgumentException
      */
-    public function addMeta(MetaInstanceInterface $metaInstance): void
+    public function add(InstanceInterface $instance): void
     {
-        if ($this->has($metaInstance->getId())) {
+        if ($this->has($instance->getId())) {
             throw new InvalidArgumentException(sprintf(
-                'Meta instance "%s" already exists',
-                $metaInstance->getId(),
+                'Instance "%s" already exists',
+                $instance->getId(),
             ));
         }
         
         $this->checkContainerId(
-            $metaInstance->getId(),
-            $metaInstance->getClassName(),
+            $instance->getId(),
+            $instance->getClassName(),
         );
         
-        $this->metaInstances[$metaInstance->getId()] = $metaInstance;
+        $this->instances[$instance->getId()] = $instance;
     }
 
     /**
-     * @throws MetaInstanceNotFoundException
+     * @throws NotFoundInstanceException
      * @throws CircularReferenceException
      */
     public function get(string $id): object
     {
-        if (array_key_exists($id, $this->instances)) {
-            if ($this->instances[$id] instanceof Closure) {
-                $this->instances[$id] = call_user_func(
-                    $this->instances[$id],
+        if (array_key_exists($id, $this->services)) {
+            if ($this->services[$id] instanceof Closure) {
+                $this->services[$id] = call_user_func(
+                    $this->services[$id],
                     $this,
                 );
             }
             
-            return $this->instances[$id];
+            return $this->services[$id];
         }
         
-        if (array_key_exists($id, $this->metaInstances)) {
+        if (array_key_exists($id, $this->instances)) {
             return $this->instantiate(
-                $this->metaInstances[$id],
+                $this->instances[$id],
             );
         }
 
-        throw new MetaInstanceNotFoundException(sprintf(
+        throw new NotFoundInstanceException(sprintf(
             'Undefined "%s" instance',
             $id,
         ));
@@ -93,19 +93,19 @@ class MetaRegistry implements MetaRegistryInterface
 
     public function has(string $id): bool
     {
-        return array_key_exists($id, $this->instances)
-            || array_key_exists($id, $this->metaInstances)
+        return array_key_exists($id, $this->services)
+            || array_key_exists($id, $this->instances)
             || $this->isContainerId($id);
     }
     
-    public function getParameter(string $name, mixed $default = null): mixed
+    public function getOption(string $name, mixed $default = null): mixed
     {
-        return $this->parameters[$name] ?? $default;
+        return $this->options[$name] ?? $default;
     }
     
-    public function setParameter(string $name, mixed $value): void
+    public function addOption(string $name, mixed $value): void
     {
-        $this->parameters[$name] = $value;
+        $this->options[$name] = $value;
     }
     
     public function compile(): void
@@ -114,16 +114,16 @@ class MetaRegistry implements MetaRegistryInterface
             return;
         }
         
-        foreach ($this->metaInstances as $metaInstance) {
-            $this->instantiate($metaInstance);
+        foreach ($this->instances as $instance) {
+            $this->instantiate($instance);
         }
         
         $this->isCompiled = true;
     }
     
-    public function getMetaInstances(): array
+    public function getInstances(): array
     {
-        return $this->metaInstances;
+        return $this->instances;
     }
     
     public function isContainerId(string $id): bool
@@ -134,34 +134,34 @@ class MetaRegistry implements MetaRegistryInterface
     /**
      * @throws CircularReferenceException
      */
-    protected function instantiate(MetaInstanceInterface $metaInstance): object
+    protected function instantiate(InstanceInterface $instance): object
     {
         $arguments = [];
         
-        foreach ($metaInstance->getExtends() as $id) {
-            if (!array_key_exists($id, $this->metaInstances)) {
+        if ($parentId = $instance->getParentId()) {
+            if (!array_key_exists($parentId, $this->instances)) {
                 throw new InvalidArgumentException(sprintf(
-                    'Not found extends "%s" in meta "%s"',
-                    $id,
-                    $metaInstance->getClassName(),
+                    'Not found parent instance "%s" for "%s"',
+                    $parentId,
+                    $instance->getClassName(),
                 ));
             }
             
             foreach (
-                $this->metaInstances[$id]->getArguments()
+                $this->instances[$parentId]->getArguments()
                 as $name => $reference
             ) {
-                $metaInstance->addArgument($name, $reference);
+                $instance->addArgument($name, $reference);
             }
         }
         
-        foreach ($metaInstance->getArguments() as $name => $reference) {
-            $this->checkCircular($metaInstance, $reference);
+        foreach ($instance->getArguments() as $name => $reference) {
+            $this->checkCircular($instance, $reference);
             $arguments[$name] = $reference->load($this);
         }
 
-        return $this->instances[$metaInstance->getId()] = new (
-            $metaInstance->getClassName()
+        return $this->services[$instance->getId()] = new (
+            $instance->getClassName()
         )(...$arguments);
     }
 
@@ -169,43 +169,43 @@ class MetaRegistry implements MetaRegistryInterface
      * @throws CircularReferenceException
      */
     protected function checkCircular(
-        MetaInstanceInterface $rootMetaInstance,
+        instanceInterface $rootInstance,
         ReferenceInterface $innerReference,
-        ?MetaInstanceInterface $innerMetaInstance = null,
+        ?InstanceInterface $innerInstance = null,
     ): void {
-        if (!array_key_exists($innerReference->getId(), $this->metaInstances)) {
+        if (!array_key_exists($innerReference->getId(), $this->instances)) {
             return;
         }
         
-        if ($rootMetaInstance->getId() === $innerReference->getId()) {
-            if ($innerMetaInstance) {
+        if ($rootInstance->getId() === $innerReference->getId()) {
+            if ($innerInstance) {
                 throw new CircularReferenceException(sprintf(
                     'Detected circular reference "%s" -> <- "%s"',
-                    $rootMetaInstance->getClassName(),
-                    $innerMetaInstance->getClassName(),
+                    $rootInstance->getClassName(),
+                    $innerInstance->getClassName(),
                 ));
             }
             
             throw new CircularReferenceException(sprintf(
                 'Detected self reference "%s"',
-                $rootMetaInstance->getClassName(),
+                $rootInstance->getClassName(),
             ));
         }
         
-        $nextMetaInstance = $this->metaInstances[$innerReference->getId()];
-        foreach ($nextMetaInstance->getArguments() as $nextReference) {
-            if ($innerMetaInstance?->getId() === $nextReference->getId()) {
+        $nextInstance = $this->instances[$innerReference->getId()];
+        foreach ($nextInstance->getArguments() as $nextReference) {
+            if ($innerInstance?->getId() === $nextReference->getId()) {
                 throw new CircularReferenceException(sprintf(
                     'Detected circular reference "%s" -> <- "%s"',
-                    $innerMetaInstance->getClassName(),
-                    $nextMetaInstance->getClassName(),
+                    $innerInstance->getClassName(),
+                    $nextInstance->getClassName(),
                 ));
             }
             
             $this->checkCircular(
-                $rootMetaInstance,
+                $rootInstance,
                 $nextReference,
-                $nextMetaInstance,
+                $nextInstance,
             );
         }
     }
@@ -214,7 +214,7 @@ class MetaRegistry implements MetaRegistryInterface
      * @throws CircularReferenceException
      * @throws InvalidArgumentException
      */
-    protected function addInstance(string $id, object $service): void
+    protected function addService(string $id, object $service): void
     {
         $this->checkContainerId($id, $service::class);
         
@@ -232,7 +232,7 @@ class MetaRegistry implements MetaRegistryInterface
             ));
         }
         
-        $this->instances[$id] = $service;
+        $this->services[$id] = $service;
     }
     
     protected function checkContainerId(string $id, string $className): void
@@ -242,7 +242,7 @@ class MetaRegistry implements MetaRegistryInterface
         }
         
         throw new InvalidArgumentException(sprintf(
-            'Meta instance "%s" refers to the reserved "[%s]"',
+            'Instance "%s" refers to reserved "[%s]"',
             $className,
             implode(',', $this->registryIds),
         ));

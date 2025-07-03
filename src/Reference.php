@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Slon\Container;
 
 use InvalidArgumentException;
-use Slon\Container\Meta\MetaRegistryInterface;
-use Slon\Container\Meta\ReferenceInterface;
+use Slon\Container\Contract\RegistryInterface;
+use Slon\Container\Contract\ReferenceInterface;
 
 use function sprintf;
 
@@ -31,7 +31,7 @@ class Reference implements ReferenceInterface
         return $this->id;
     }
 
-    public function load(MetaRegistryInterface $registry): object
+    public function load(RegistryInterface $registry): object
     {
         if ($registry->isContainerId($this->getId())) {
             return clone $registry;
